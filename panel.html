@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f172a">
+<title>Panel · FaceCheck Gates</title>
+<!-- FaceCheck Gates · Panel de recepción · v1 (15/11/2026)
+     Ingresos del día, socios (alta, vencimiento, baja), puertas y alertas de fraude.
+     Todo texto que viene del servidor se escribe con textContent (auditoría M5). -->
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--borde:#334155;--txt:#f1f5f9;--sub:#94a3b8;--cyan:#38bdf8;--azul:#0ea5e9;--verde:#10b981;--rojo:#ef4444;--naranja:#f97316}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+button,input,select{font-family:inherit}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--borde);background:#0b1222}
+.marca{display:flex;align-items:center;gap:8px}
+.marca svg{width:28px;height:19px}
+.marca-txt{font-size:16px;font-weight:700}
+.gates{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1.5px;color:#0f172a;background:var(--cyan);border-radius:20px;padding:2px 8px;vertical-align:middle}
+.cli{font-size:1.05rem;font-weight:700;color:var(--cyan)}
+.quien{font-size:.8rem;color:var(--sub)}
+.der{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn{border:none;border-radius:9px;padding:9px 14px;font-weight:700;font-size:.9rem;cursor:pointer;background:var(--azul);color:#fff;text-decoration:none;display:inline-block}
+.btn:disabled{background:var(--borde);color:#64748b;cursor:not-allowed}
+.btn-sec{background:transparent;border:1px solid var(--borde);color:var(--sub);font-weight:600}
+.btn-sec:hover{color:var(--txt);border-color:var(--cyan)}
+.btn-rojo{background:transparent;border:1px solid var(--borde);color:#f87171;font-weight:600}
+.btn-chico{padding:5px 10px;font-size:.8rem}
+nav{display:flex;gap:4px;border-bottom:1px solid var(--borde);margin-bottom:16px;overflow-x:auto}
+nav button{background:none;border:none;color:var(--sub);font-weight:600;font-size:.95rem;padding:10px 14px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+nav button.on{color:var(--txt);border-bottom-color:var(--cyan)}
+.vista{display:none}.vista.on{display:block}
+.card{background:var(--card);border:1px solid var(--borde);border-radius:14px;padding:16px;margin-bottom:14px}
+.barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+input,select{background:var(--bg);border:1.5px solid var(--borde);border-radius:9px;color:var(--txt);padding:9px 11px;font-size:.92rem;outline:none}
+input:focus,select:focus{border-color:var(--cyan)}
+input[type=date]{color-scheme:dark}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--borde);border-radius:12px;padding:12px 14px}
+.kpi b{display:block;font-size:1.6rem}
+.kpi span{font-size:.8rem;color:var(--sub)}
+.tabla{width:100%;border-collapse:collapse;font-size:.88rem}
+.tabla th{text-align:left;color:var(--sub);font-weight:600;font-size:.76rem;text-transform:uppercase;letter-spacing:.4px;padding:8px;border-bottom:1px solid var(--borde)}
+.tabla td{padding:9px 8px;border-bottom:1px solid #243247;vertical-align:middle}
+.tabla-scroll{overflow-x:auto}
+.chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.76rem;font-weight:700;white-space:nowrap}
+.c-ok{background:#064e3b;color:#34d399}.c-err{background:#450a0a;color:#f87171}.c-warn{background:#431407;color:#fdba74}.c-info{background:#1e3a5f;color:#93c5fd}.c-gris{background:#273548;color:var(--sub)}
+.vacio{color:var(--sub);text-align:center;padding:26px 0;font-size:.92rem}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end}
+.form label{display:block;font-size:.74rem;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.form input,.form select{width:100%}
+.aviso{padding:10px 12px;border-radius:9px;font-size:.88rem;font-weight:600;margin-top:10px;display:none}
+.aviso.on{display:block}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;color:var(--sub);word-break:break-all}
+h2{font-size:1rem;margin-bottom:12px}
+#login{display:none;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+#login.on{display:flex}
+.login-card{background:var(--card);border:1px solid var(--borde);border-radius:16px;padding:30px 26px;width:100%;max-width:400px}
+.login-card input{width:100%;margin:8px 0 12px}
+.login-err{display:none;padding:10px;border-radius:9px;background:#450a0a;color:#f87171;font-size:.85rem;text-align:center;margin-top:10px}
+#app{display:none}#app.on{display:block}
+.staging-band{display:none}
+body.staging .staging-band{display:flex;align-items:center;justify-content:center;height:30px;background:#f59e0b;color:#0f172a;font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase}
+@media (max-width:640px){.ocultar-cel{display:none}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<div class="staging-band" role="status">Entorno de pruebas · Gates</div>
+
+<div id="login">
+  <div class="login-card">
+    <div class="marca" style="justify-content:center;margin-bottom:6px"><svg viewBox="0 0 96 66" fill="none"><circle cx="26" cy="16" r="8" fill="#38bdf8"/><circle cx="56" cy="16" r="8" fill="#38bdf8"/><path d="M8 32 C16 54 30 66 40 62 C50 56 70 24 90 4" stroke="#38bdf8" stroke-width="6" stroke-linecap="round"/></svg><span class="marca-txt">FaceCheck <span class="gates">GATES</span></span></div>
+    <p style="text-align:center;color:var(--sub);font-size:.85rem;margin-bottom:16px">Panel de recepción</p>
+    <label for="codigo" style="font-size:.78rem;color:var(--sub);font-weight:600;text-transform:uppercase">Código de acceso</label>
+    <input id="codigo" type="password" autocomplete="off" placeholder="Ingresá tu código">
+    <button class="btn" id="btnLogin" style="width:100%;padding:12px">Ingresar</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<div id="app">
+<header>
+  <div>
+    <div class="marca"><svg viewBox="0 0 96 66" fill="none"><circle cx="26" cy="16" r="8" fill="#38bdf8"/><circle cx="56" cy="16" r="8" fill="#38bdf8"/><path d="M8 32 C16 54 30 66 40 62 C50 56 70 24 90 4" stroke="#38bdf8" stroke-width="6" stroke-linecap="round"/></svg><span class="marca-txt">FaceCheck <span class="gates">GATES</span></span></div>
+  </div>
+  <div style="text-align:center"><div class="cli" id="cli"></div><div class="quien" id="quien"></div></div>
+  <div class="der">
+    <a class="btn" id="lnkRegistro" href="#">Registrar socio</a>
+    <button class="btn btn-sec" id="btnSalir">Cerrar sesión</button>
+  </div>
+</header>
+
+<div class="wrap">
+<nav>
+  <button data-v="ingresos" class="on">Ingresos</button>
+  <button data-v="socios">Socios</button>
+  <button data-v="puertas">Puertas</button>
+  <button data-v="alertas">Alertas</button>
+</nav>
+
+<!-- INGRESOS -->
+<section class="vista on" id="v-ingresos">
+  <div class="barra">
+    <input type="date" id="fecha">
+    <button class="btn btn-sec" id="btnRefrescar">Actualizar</button>
+    <span class="quien" id="actualizado"></span>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><b id="k-ok">–</b><span>Ingresos</span></div>
+    <div class="kpi"><b id="k-den">–</b><span>Rechazados</span></div>
+    <div class="kpi"><b id="k-err">–</b><span>Puerta sin respuesta</span></div>
+    <div class="kpi"><b id="k-pers">–</b><span>Personas distintas</span></div>
+  </div>
+  <div class="card tabla-scroll">
+    <table class="tabla"><thead><tr><th>Hora</th><th>Socio</th><th class="ocultar-cel">DNI</th><th>Puerta</th><th>Resultado</th></tr></thead><tbody id="t-ingresos"></tbody></table>
+    <div class="vacio" id="vacio-ingresos">Sin ingresos este día.</div>
+  </div>
+</section>
+
+<!-- SOCIOS -->
+<section class="vista" id="v-socios">
+  <div class="card">
+    <h2>Alta o renovación</h2>
+    <div class="form">
+      <div><label for="s-dni">DNI</label><input id="s-dni" inputmode="numeric" maxlength="15"></div>
+      <div><label for="s-nombre">Nombre y apellido</label><input id="s-nombre" maxlength="80"></div>
+      <div><label for="s-vence">Vigente hasta</label><input id="s-vence" type="date"></div>
+      <div><button class="btn" id="btnGuardarSocio" style="width:100%">Guardar</button></div>
+    </div>
+    <div class="aviso" id="aviso-socio"></div>
+    <p class="quien" style="margin-top:8px">La foto se registra desde <b>Registrar socio</b> (celular de recepción).</p>
+  </div>
+  <div class="barra">
+    <input id="buscar" placeholder="Buscar por nombre o DNI" style="flex:1;min-width:180px">
+    <select id="filtro">
+      <option value="">Todos</option>
+      <option value="porvencer">Vencen en 7 días</option>
+      <option value="vencidos">Vencidos</option>
+      <option value="sinfoto">Sin foto</option>
+      <option value="baja">Dados de baja</option>
+    </select>
+  </div>
+  <div class="card tabla-scroll">
+    <table class="tabla"><thead><tr><th>Socio</th><th class="ocultar-cel">DNI</th><th>Vigente hasta</th><th>Foto</th><th></th></tr></thead><tbody id="t-socios"></tbody></table>
+    <div class="vacio" id="vacio-socios">Sin socios cargados.</div>
+  </div>
+</section>
+
+<!-- PUERTAS -->
+<section class="vista" id="v-puertas">
+  <div class="card tabla-scroll">
+    <table class="tabla"><thead><tr><th>Puerta</th><th>Locación</th><th class="ocultar-cel">Tipo</th><th>Sentido</th><th>Estado</th><th>Link del QR</th></tr></thead><tbody id="t-puertas"></tbody></table>
+    <div class="vacio" id="vacio-puertas">Sin puertas.</div>
+  </div>
+  <div class="card" id="form-puerta" hidden>
+    <h2>Agregar o editar puerta</h2>
+    <div class="form">
+      <div><label for="p-id">ID (minúsculas y guiones)</label><input id="p-id" maxlength="40" placeholder="sede1-molinete1"></div>
+      <div><label for="p-loc">Locación</label><input id="p-loc" maxlength="80"></div>
+      <div><label for="p-tipo">Tipo</label><select id="p-tipo"><option>molinete</option><option>barrera</option><option>cerradura</option></select></div>
+      <div><label for="p-sentido">Sentido</label><select id="p-sentido"><option value="entrada">Entrada</option><option value="salida">Salida</option><option value="ambos">Entrada y salida</option></select></div>
+      <div><label for="p-coord">Coordenadas (Google Maps)</label><input id="p-coord" placeholder="-34.6037, -58.3816"></div>
+      <div><label for="p-radio">Radio (m)</label><input id="p-radio" type="number" min="10" max="1000" value="100"></div>
+      <div><label for="p-pulso">Pulso del relé (ms)</label><input id="p-pulso" type="number" min="100" max="10000" value="500"></div>
+      <div><label for="p-activa">Estado</label><select id="p-activa"><option value="1">Activa</option><option value="0">Inactiva</option></select></div>
+      <div><button class="btn" id="btnGuardarPuerta" style="width:100%">Guardar puerta</button></div>
+    </div>
+    <div class="aviso" id="aviso-puerta"></div>
+  </div>
+</section>
+
+<!-- ALERTAS -->
+<section class="vista" id="v-alertas">
+  <div class="card tabla-scroll">
+    <table class="tabla"><thead><tr><th>Socio</th><th>Nivel</th><th>Ingresos a revisar</th></tr></thead><tbody id="t-alertas"></tbody></table>
+    <div class="vacio" id="vacio-alertas">Sin alertas.</div>
+  </div>
+  <p class="quien">El sistema marca, no bloquea: el socio entró igual. Revisalo con la grabación o en recepción.</p>
+</section>
+</div>
+</div>
+
+<script>
+var ES_STAGING = location.hostname.indexOf('gates-staging.') === 0 || location.hostname === 'localhost' || location.protocol === 'file:';
+var API_URL = ES_STAGING
+  ? 'https://4niojadutxgkg3p4w5sfxhdgyi0uvwzn.lambda-url.us-east-2.on.aws'
+  : 'https://PROD_URL_PENDIENTE.lambda-url.us-east-2.on.aws';
+if (ES_STAGING) document.body.classList.add('staging');
+var CLIENT_ID = new URLSearchParams(location.search).get('c') || '';
+var CLAVE = 'fcg_s';
+
+var $ = function (id) { return document.getElementById(id); };
+var ses = null, socios = [], timer = null;
+
+function hoyISO() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function masDias(iso, n) { var d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
+function fechaAR(iso) { if (!iso) return ''; var p = String(iso).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso; }
+function auth(h) { h = h || {}; if (ses) h['Authorization'] = 'Bearer ' + ses.token; return h; }
+function el(tag, txt, cls) { var e = document.createElement(tag); if (txt !== undefined && txt !== null) e.textContent = txt; if (cls) e.className = cls; return e; }
+function chip(txt, tipo) { return el('span', txt, 'chip c-' + tipo); }
+function aviso(id, tipo, txt) { var a = $(id); a.className = 'aviso on chip-' + tipo; a.style.background = { ok: '#064e3b', err: '#450a0a', warn: '#431407' }[tipo]; a.style.color = { ok: '#34d399', err: '#f87171', warn: '#fdba74' }[tipo]; a.textContent = txt; }
+
+async function api(ruta, opt) {
+  opt = opt || {};
+  var r = await fetch(API_URL + ruta, { method: opt.body ? 'POST' : 'GET', credentials: 'omit',
+    headers: auth(opt.body ? { 'Content-Type': 'application/json' } : {}),
+    body: opt.body ? JSON.stringify(opt.body) : undefined });
+  if (r.status === 401) { salir('Tu sesión venció. Ingresá tu código de nuevo.'); throw new Error('sesion'); }
+  var d = {}; try { d = await r.json(); } catch (e) {}
+  if (!r.ok || d.ok === false) throw new Error(d.error || ('Error ' + r.status));
+  return d;
+}
+
+// ── Sesion ───────────────────────────────────────────────────────────────────
+function leerSesion() { try { var s = JSON.parse(sessionStorage.getItem(CLAVE) || 'null'); return s && s.clientId === CLIENT_ID ? s : null; } catch (e) { return null; } }
+async function login() {
+  var c = $('codigo').value.trim(); if (!c) return;
+  $('btnLogin').disabled = true; $('loginErr').style.display = 'none';
+  try {
+    var r = await fetch(API_URL + '/login', { method: 'POST', credentials: 'omit', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: CLIENT_ID, codigo: c }) });
+    var d = await r.json();
+    if (!r.ok || !d.ok) { $('loginErr').textContent = d.error || 'Código inválido'; $('loginErr').style.display = 'block'; return; }
+    ses = { token: d.token, rol: d.rol, etiqueta: d.etiqueta, nombreCliente: d.nombreCliente, clientId: CLIENT_ID };
+    sessionStorage.setItem(CLAVE, JSON.stringify(ses)); $('codigo').value = '';
+    abrir();
+  } catch (e) { $('loginErr').textContent = 'No se pudo conectar. Revisá internet.'; $('loginErr').style.display = 'block'; }
+  finally { $('btnLogin').disabled = false; }
+}
+function salir(texto) {
+  try { sessionStorage.removeItem(CLAVE); } catch (e) {}
+  ses = null; clearInterval(timer);
+  $('app').classList.remove('on'); $('login').classList.add('on');
+  if (texto) { $('loginErr').textContent = texto; $('loginErr').style.display = 'block'; }
+}
+function abrir() {
+  $('login').classList.remove('on'); $('app').classList.add('on');
+  $('cli').textContent = ses.nombreCliente || '';
+  $('quien').textContent = (ses.etiqueta || '') + ' · ' + (ses.rol === 'ADMIN' ? 'Administrador' : 'Recepción');
+  document.title = (ses.nombreCliente ? ses.nombreCliente + ' · ' : '') + 'Panel Gates';
+  $('lnkRegistro').href = 'registro.html?c=' + encodeURIComponent(CLIENT_ID);
+  $('form-puerta').hidden = ses.rol !== 'ADMIN';
+  $('fecha').value = hoyISO(); $('s-vence').value = masDias(hoyISO(), 30);
+  cargarIngresos(); cargarSocios();
+  clearInterval(timer);
+  timer = setInterval(function () { if ($('fecha').value === hoyISO() && !document.hidden && $('v-ingresos').classList.contains('on')) cargarIngresos(); }, 30000);
+}
+
+// ── Pestañas ─────────────────────────────────────────────────────────────────
+document.querySelectorAll('nav button').forEach(function (b) {
+  b.addEventListener('click', function () {
+    document.querySelectorAll('nav button').forEach(function (x) { x.classList.toggle('on', x === b); });
+    document.querySelectorAll('.vista').forEach(function (v) { v.classList.toggle('on', v.id === 'v-' + b.dataset.v); });
+    if (b.dataset.v === 'ingresos') cargarIngresos();
+    if (b.dataset.v === 'socios') cargarSocios();
+    if (b.dataset.v === 'puertas') cargarPuertas();
+    if (b.dataset.v === 'alertas') cargarAlertas();
+  });
+});
+
+// ── Ingresos ─────────────────────────────────────────────────────────────────
+var RES = { ok: ['Entró', 'ok'], error_puerta: ['Puerta sin respuesta', 'warn'], membresia_vencida: ['Membresía vencida', 'err'],
+            sin_membresia: ['Sin vencimiento cargado', 'err'], no_socio: ['No es socio activo', 'err'] };
+async function cargarIngresos() {
+  try {
+    var d = await api('/ingresos?fecha=' + encodeURIComponent($('fecha').value || hoyISO()));
+    var lista = (d.ingresos || []).sort(function (a, b) { return String(b.ts).localeCompare(String(a.ts)); });
+    var tb = $('t-ingresos'); tb.textContent = '';
+    var nOk = 0, nDen = 0, nErr = 0, pers = {};
+    lista.forEach(function (x) {
+      if (x.resultado === 'ok') nOk++; else if (x.resultado === 'error_puerta') nErr++; else nDen++;
+      if (x.dni && (x.resultado === 'ok' || x.resultado === 'error_puerta')) pers[x.dni] = 1;
+      var tr = el('tr');
+      tr.appendChild(el('td', String(x.hora || '').slice(0, 5)));
+      tr.appendChild(el('td', x.nombre || '—'));
+      var tdDni = el('td', x.dni || '', 'ocultar-cel'); tr.appendChild(tdDni);
+      tr.appendChild(el('td', (x.locacion ? x.locacion + ' · ' : '') + (x.puerta || '')));
+      var td = el('td'); var m = RES[x.resultado] || [x.resultado, 'gris'];
+      td.appendChild(chip((x.tipo === 'SALIDA' && x.resultado === 'ok') ? 'Salió' : m[0], m[1])); tr.appendChild(td);
+      tb.appendChild(tr);
+    });
+    $('vacio-ingresos').style.display = lista.length ? 'none' : 'block';
+    $('k-ok').textContent = nOk; $('k-den').textContent = nDen; $('k-err').textContent = nErr; $('k-pers').textContent = Object.keys(pers).length;
+    $('actualizado').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  } catch (e) { if (e.message !== 'sesion') $('actualizado').textContent = '⚠ ' + e.message; }
+}
+
+// ── Socios ───────────────────────────────────────────────────────────────────
+async function cargarSocios() {
+  try { var d = await api('/socios'); socios = d.socios || []; pintarSocios(); }
+  catch (e) { if (e.message !== 'sesion') aviso('aviso-socio', 'err', e.message); }
+}
+function pintarSocios() {
+  var q = $('buscar').value.trim().toLowerCase(), f = $('filtro').value, hoy = hoyISO(), en7 = masDias(hoy, 7);
+  var lista = socios.filter(function (s) {
+    if (q && String(s.nombre || '').toLowerCase().indexOf(q) < 0 && String(s.dni).indexOf(q) < 0) return false;
+    var v = s.venceMembresia || '';
+    if (f === 'porvencer') return s.activo && v && v >= hoy && v <= en7;
+    if (f === 'vencidos') return s.activo && (!v || v < hoy);
+    if (f === 'sinfoto') return s.activo && !s.conRostro;
+    if (f === 'baja') return !s.activo;
+    return true;
+  }).sort(function (a, b) { return String(a.nombre).localeCompare(String(b.nombre)); });
+  var tb = $('t-socios'); tb.textContent = '';
+  lista.forEach(function (s) {
+    var tr = el('tr'), v = s.venceMembresia || '';
+    tr.appendChild(el('td', s.nombre || ''));
+    tr.appendChild(el('td', s.dni, 'ocultar-cel'));
+    var tdV = el('td');
+    if (!s.activo) tdV.appendChild(chip('De baja', 'gris'));
+    else if (!v) tdV.appendChild(chip('Sin cargar', 'err'));
+    else if (v < hoy) tdV.appendChild(chip('Vencida ' + fechaAR(v), 'err'));
+    else if (v <= en7) tdV.appendChild(chip(fechaAR(v), 'warn'));
+    else tdV.appendChild(chip(fechaAR(v), 'ok'));
+    tr.appendChild(tdV);
+    var tdF = el('td'); tdF.appendChild(s.conRostro ? chip('Sí', 'ok') : chip('Falta', 'warn')); tr.appendChild(tdF);
+    var tdA = el('td'); tdA.style.whiteSpace = 'nowrap';
+    var bEd = el('button', 'Editar', 'btn btn-sec btn-chico');
+    bEd.addEventListener('click', function () { $('s-dni').value = s.dni; $('s-nombre').value = s.nombre || ''; $('s-vence').value = v || masDias(hoy, 30); window.scrollTo({ top: 0, behavior: 'smooth' }); $('s-vence').focus(); });
+    var bBaja = el('button', s.activo ? 'Dar de baja' : 'Reactivar', 'btn btn-chico ' + (s.activo ? 'btn-rojo' : 'btn-sec'));
+    bBaja.style.marginLeft = '6px';
+    bBaja.addEventListener('click', async function () {
+      bBaja.disabled = true;
+      try { await api('/socios/guardar', { body: { dni: s.dni, activo: !s.activo } }); s.activo = !s.activo; pintarSocios(); }
+      catch (e) { if (e.message !== 'sesion') aviso('aviso-socio', 'err', e.message); bBaja.disabled = false; }
+    });
+    tdA.appendChild(bEd); tdA.appendChild(bBaja); tr.appendChild(tdA);
+    tb.appendChild(tr);
+  });
+  $('vacio-socios').style.display = lista.length ? 'none' : 'block';
+  $('vacio-socios').textContent = socios.length ? 'Ningún socio coincide con el filtro.' : 'Sin socios cargados.';
+}
+async function guardarSocio() {
+  var dni = $('s-dni').value.trim(), nom = $('s-nombre').value.trim(), v = $('s-vence').value;
+  if (!/^[0-9A-Za-z]{5,15}$/.test(dni)) { aviso('aviso-socio', 'err', 'DNI inválido.'); return; }
+  if (nom.length < 3) { aviso('aviso-socio', 'err', 'Falta el nombre.'); return; }
+  $('btnGuardarSocio').disabled = true;
+  try {
+    await api('/socios/guardar', { body: { dni: dni, nombre: nom, venceMembresia: v } });
+    aviso('aviso-socio', 'ok', '✓ Guardado: ' + nom + (v ? ' · vigente hasta ' + fechaAR(v) : ''));
+    $('s-dni').value = ''; $('s-nombre').value = ''; $('s-vence').value = masDias(hoyISO(), 30);
+    cargarSocios();
+  } catch (e) { if (e.message !== 'sesion') aviso('aviso-socio', 'err', e.message); }
+  finally { $('btnGuardarSocio').disabled = false; }
+}
+
+// ── Puertas ──────────────────────────────────────────────────────────────────
+function linkIngreso(pid) {
+  var base = location.href.replace(/[^\/]*$/, '');
+  return base + 'ingreso.html?c=' + encodeURIComponent(CLIENT_ID) + '&p=' + encodeURIComponent(pid);
+}
+async function cargarPuertas() {
+  try {
+    var d = await api('/puertas'); var tb = $('t-puertas'); tb.textContent = '';
+    (d.puertas || []).forEach(function (p) {
+      var tr = el('tr');
+      tr.appendChild(el('td', p.puertaId)); tr.appendChild(el('td', p.locacion || ''));
+      tr.appendChild(el('td', p.tipo || '', 'ocultar-cel'));
+      tr.appendChild(el('td', { entrada: 'Entrada', salida: 'Salida', ambos: 'Entrada y salida' }[p.sentido] || p.sentido));
+      var tdE = el('td'); tdE.appendChild(p.activa ? chip('Activa', 'ok') : chip('Inactiva', 'gris')); tr.appendChild(tdE);
+      var tdL = el('td'); var url = linkIngreso(p.puertaId);
+      var bC = el('button', 'Copiar link', 'btn btn-sec btn-chico');
+      bC.addEventListener('click', function () { navigator.clipboard.writeText(url).then(function () { bC.textContent = '✓ Copiado'; setTimeout(function () { bC.textContent = 'Copiar link'; }, 2000); }); });
+      tdL.appendChild(bC);
+      if (ses.rol === 'ADMIN') {
+        var bE = el('button', 'Editar', 'btn btn-sec btn-chico'); bE.style.marginLeft = '6px';
+        bE.addEventListener('click', function () {
+          $('p-id').value = p.puertaId; $('p-loc').value = p.locacion || ''; $('p-tipo').value = p.tipo || 'molinete';
+          $('p-sentido').value = p.sentido || 'entrada'; $('p-coord').value = p.lat + ', ' + p.lng;
+          $('p-radio').value = p.radioM || 100; $('p-pulso').value = p.pulsoMs || 500; $('p-activa').value = p.activa ? '1' : '0';
+          $('form-puerta').scrollIntoView({ behavior: 'smooth' });
+        });
+        tdL.appendChild(bE);
+      }
+      tr.appendChild(tdL); tb.appendChild(tr);
+    });
+    $('vacio-puertas').style.display = (d.puertas || []).length ? 'none' : 'block';
+  } catch (e) { if (e.message !== 'sesion') aviso('aviso-puerta', 'err', e.message); }
+}
+async function guardarPuerta() {
+  var c = $('p-coord').value.split(','), lat = parseFloat(c[0]), lng = parseFloat(c[1]);
+  if (isNaN(lat) || isNaN(lng)) { aviso('aviso-puerta', 'err', 'Coordenadas inválidas. Pegalas como salen de Google Maps.'); return; }
+  $('btnGuardarPuerta').disabled = true;
+  try {
+    await api('/puertas/guardar', { body: { puertaId: $('p-id').value.trim().toLowerCase(), locacion: $('p-loc').value.trim(),
+      tipo: $('p-tipo').value, sentido: $('p-sentido').value, lat: lat, lng: lng, radioM: +$('p-radio').value,
+      pulsoMs: +$('p-pulso').value, activa: $('p-activa').value === '1' } });
+    aviso('aviso-puerta', 'ok', '✓ Puerta guardada.'); cargarPuertas();
+  } catch (e) { if (e.message !== 'sesion') aviso('aviso-puerta', 'err', e.message); }
+  finally { $('btnGuardarPuerta').disabled = false; }
+}
+
+// ── Alertas ──────────────────────────────────────────────────────────────────
+async function cargarAlertas() {
+  try {
+    var d = await api('/sospechas'); if (!socios.length) { try { socios = (await api('/socios')).socios || []; } catch (e) {} }
+    var nom = {}; socios.forEach(function (s) { nom[s.dni] = s.nombre; });
+    var tb = $('t-alertas'); tb.textContent = ''; var dnis = Object.keys(d.sospechas || {});
+    dnis.forEach(function (dni) {
+      var s = d.sospechas[dni], tr = el('tr');
+      tr.appendChild(el('td', (nom[dni] || '') + ' · ' + dni));
+      var tdN = el('td'); tdN.appendChild(chip(['', 'Revisar', 'Sospechoso', 'Crítico'][s.nivel] || 'Revisar', s.nivel >= 3 ? 'err' : 'warn')); tr.appendChild(tdN);
+      tr.appendChild(el('td', (s.fichadas || []).map(function (f) { return f.fecha + ' ' + String(f.hora).slice(0, 5); }).join(' · ')));
+      tb.appendChild(tr);
+    });
+    $('vacio-alertas').style.display = dnis.length ? 'none' : 'block';
+  } catch (e) {}
+}
+
+$('btnLogin').addEventListener('click', login);
+$('codigo').addEventListener('keydown', function (e) { if (e.key === 'Enter') login(); });
+$('btnSalir').addEventListener('click', function () { salir(''); });
+$('btnRefrescar').addEventListener('click', cargarIngresos);
+$('fecha').addEventListener('change', cargarIngresos);
+$('buscar').addEventListener('input', pintarSocios);
+$('filtro').addEventListener('change', pintarSocios);
+$('btnGuardarSocio').addEventListener('click', guardarSocio);
+$('btnGuardarPuerta').addEventListener('click', guardarPuerta);
+
+if (!CLIENT_ID) document.body.innerHTML = '<p style="padding:30px;text-align:center">Falta el cliente en el link (?c=…).</p>';
+else { ses = leerSesion(); if (ses) abrir(); else $('login').classList.add('on'); }
+</script>
+</body>
+</html>

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0f172a">
+<title>Registro de socios · FaceCheck Gates</title>
+<!-- FaceCheck Gates · Registro de socios desde el celular · v1 (15/11/2026)
+     Misma pantalla que el admin de Jobs (DNI → foto → registrar), con una diferencia: en un
+     gimnasio el recepcionista da de alta al socio en el momento. Si el DNI no existe, se
+     cargan nombre y vencimiento aca mismo. Copia aparte: el admin de Jobs no se toca. -->
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--cam-h:230px;--cam-ratio:.8}
+@media (min-height:720px){:root{--cam-h:270px}}
+@media (min-height:820px){:root{--cam-h:300px}}
+@media (max-height:700px){:root{--cam-h:190px}.card{padding:12px}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f172a;color:#f1f5f9;min-height:100vh;padding:12px}
+label{display:block;font-size:.78rem;color:#94a3b8;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+input{width:100%;padding:12px 14px;background:#0f172a;border:1.5px solid #334155;border-radius:10px;color:#f1f5f9;font-size:1rem;outline:none;font-family:inherit}
+input:focus{border-color:#38bdf8}
+input[type=date]{color-scheme:dark}
+.card{background:#1e293b;border-radius:14px;padding:14px;margin:0 auto 12px;border:1px solid #334155;max-width:440px}
+.marca{display:flex;align-items:center;justify-content:center;gap:7px}
+.marca svg{width:26px;height:18px}
+.marca-txt{font-size:15px;font-weight:700;color:#e2e8f0}
+.gates{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:1.5px;color:#0f172a;background:#38bdf8;border-radius:20px;padding:2px 7px;vertical-align:middle}
+.head{text-align:center;margin-bottom:12px}
+.cliente{font-size:1.35rem;font-weight:700;color:#38bdf8;line-height:1.2;margin-top:4px}
+.sub{font-size:.78rem;color:#94a3b8;margin-top:2px}
+.fila{display:flex;gap:8px}
+.fila input{flex:1 1 auto;min-width:0}
+.btn{width:100%;padding:13px;border:none;border-radius:11px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit}
+.btn:disabled{background:#334155!important;color:#64748b!important;cursor:not-allowed}
+.btn-azul{background:#0ea5e9;color:#fff}
+.btn-verde{background:#10b981;color:#fff}
+.btn-chico{width:auto;padding:0 16px;flex:0 0 auto}
+.btn-link{background:transparent;border:1px solid #334155;color:#94a3b8;font-size:.85rem;padding:.4rem .85rem;border-radius:7px;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block;margin-top:8px}
+.ficha{min-height:44px;margin-top:10px}
+.ficha-nom{font-size:1.05rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ficha-dat{font-size:.82rem;color:#94a3b8;margin-top:2px}
+.ficha-nom:empty::after{content:'Ingresá el DNI y tocá Verificar';font-size:.85rem;font-weight:400;color:#64748b}
+.nuevo{display:none;margin-top:12px}
+.nuevo.on{display:block}
+.nuevo .campo{margin-bottom:10px}
+.vence{display:none;margin-top:10px}
+.vence.on{display:block}
+#camBox{position:relative;height:var(--cam-h);width:calc(var(--cam-h) * var(--cam-ratio));max-width:100%;margin:0 auto;border-radius:12px;overflow:hidden;background:#0f172a;border:1px solid #334155}
+#camBox video,#camBox img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+#canvas{display:none}
+#camMsg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(15,23,42,.72);color:#e2e8f0;font-size:14px;font-weight:600;text-align:center;padding:16px}
+#camMsg.oculto{display:none}
+.cam-acc{display:flex;gap:8px;margin-top:10px}
+.btn-flip{flex:0 0 52px;padding:0;background:#475569;color:#e2e8f0;display:flex;align-items:center;justify-content:center}
+.estado{font-size:.82rem;font-weight:600;line-height:1.4;padding:8px 12px;border-radius:9px;margin:0 auto 10px;max-width:440px;display:none}
+.e-info{background:#1e3a5f;color:#93c5fd}.e-ok{background:#052e16;color:#86efac}.e-err{background:#450a0a;color:#fca5a5}.e-warn{background:#431407;color:#fdba74}
+.envolver{max-width:440px;margin:0 auto}
+#msg{margin-top:10px;padding:11px 14px;border-radius:10px;font-size:.9rem;font-weight:600;display:none;text-align:center;white-space:pre-line}
+#login{display:none;align-items:center;justify-content:center;min-height:90vh}
+#login.on{display:flex}
+.login-card{background:#1e293b;border:1px solid #334155;border-radius:16px;padding:30px 24px;width:100%;max-width:400px}
+.login-err{display:none;margin-top:12px;padding:11px;border-radius:10px;background:#450a0a;color:#f87171;border:1px solid #ef4444;font-size:.85rem;text-align:center}
+#app{display:none}#app.on{display:block}
+.spinner{display:inline-block;width:18px;height:18px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.staging-band{display:none}
+body.staging .staging-band{display:flex;position:fixed;top:0;left:0;right:0;z-index:90;align-items:center;justify-content:center;height:30px;background:#f59e0b;color:#0f172a;font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase}
+body.staging{padding-top:42px}
+</style>
+</head>
+<body>
+<div class="staging-band" role="status">Entorno de pruebas · Gates</div>
+
+<div id="login">
+  <div class="login-card">
+    <div class="head">
+      <div class="marca"><svg viewBox="0 0 96 66" fill="none"><circle cx="26" cy="16" r="8" fill="#38bdf8"/><circle cx="56" cy="16" r="8" fill="#38bdf8"/><path d="M8 32 C16 54 30 66 40 62 C50 56 70 24 90 4" stroke="#38bdf8" stroke-width="6" stroke-linecap="round"/></svg><span class="marca-txt">FaceCheck <span class="gates">GATES</span></span></div>
+      <div class="sub" style="margin-top:8px">Registro de socios · recepción</div>
+    </div>
+    <label for="codigo">Código de acceso</label>
+    <input id="codigo" type="password" placeholder="Ingresá tu código" autocomplete="off">
+    <button class="btn btn-azul" id="btnLogin" style="margin-top:12px">Ingresar</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="head">
+    <div class="marca"><svg viewBox="0 0 96 66" fill="none"><circle cx="26" cy="16" r="8" fill="#38bdf8"/><circle cx="56" cy="16" r="8" fill="#38bdf8"/><path d="M8 32 C16 54 30 66 40 62 C50 56 70 24 90 4" stroke="#38bdf8" stroke-width="6" stroke-linecap="round"/></svg><span class="marca-txt">FaceCheck <span class="gates">GATES</span></span></div>
+    <div class="cliente" id="cliente"></div>
+    <div class="sub">Registro de socios</div>
+    <a class="btn-link" id="lnkPanel" href="#">Panel</a>
+    <button class="btn-link" id="btnSalir" type="button">Cerrar sesión</button>
+  </div>
+
+  <div class="card">
+    <label for="dni">DNI del socio</label>
+    <div class="fila">
+      <input id="dni" type="text" inputmode="numeric" maxlength="12" placeholder="Ej: 38521744">
+      <button class="btn btn-azul btn-chico" id="btnVerificar">Verificar</button>
+    </div>
+    <div class="ficha"><div class="ficha-nom" id="fichaNom"></div><div class="ficha-dat" id="fichaDat"></div></div>
+    <!-- Socio nuevo: se da de alta aca mismo -->
+    <div class="nuevo" id="nuevo">
+      <div class="campo"><label for="nombre">Nombre y apellido</label><input id="nombre" type="text" maxlength="80" autocomplete="off"></div>
+      <div class="campo"><label for="venceNuevo">Membresía vigente hasta</label><input id="venceNuevo" type="date"></div>
+    </div>
+    <!-- Socio existente: se puede renovar el vencimiento en el mismo paso -->
+    <div class="vence" id="venceBox">
+      <label for="venceEdit">Membresía vigente hasta</label>
+      <input id="venceEdit" type="date">
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="camBox">
+      <video id="video" autoplay playsinline muted></video>
+      <img id="preview" alt="Foto">
+      <canvas id="canvas"></canvas>
+      <div id="camMsg"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span id="camTxt">Verificá el DNI primero</span></div>
+    </div>
+    <div class="cam-acc">
+      <button class="btn btn-azul" id="btnFoto" disabled>Tomar foto</button>
+      <button class="btn btn-flip" id="btnFlip" disabled aria-label="Cambiar cámara"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
+    </div>
+  </div>
+
+  <div class="estado" id="estado"></div>
+  <div class="envolver">
+    <button class="btn btn-verde" id="btnReg" disabled>Registrar socio</button>
+    <div id="msg"></div>
+  </div>
+</div>
+
+<script>
+var ES_STAGING = location.hostname.indexOf('gates-staging.') === 0 || location.hostname === 'localhost' || location.protocol === 'file:';
+var API_URL = ES_STAGING
+  ? 'https://4niojadutxgkg3p4w5sfxhdgyi0uvwzn.lambda-url.us-east-2.on.aws'
+  : 'https://PROD_URL_PENDIENTE.lambda-url.us-east-2.on.aws';
+if (ES_STAGING) document.body.classList.add('staging');
+var CLIENT_ID = new URLSearchParams(location.search).get('c') || '';
+var CLAVE = 'fcg_s';   // sesion de Gates: otra clave que la de Jobs (facecheck_s)
+
+var $ = function (id) { return document.getElementById(id); };
+var ses = null, ficha = null, stream = null, fotoB64 = null, facing = 'user', camLista = false, ocupado = false;
+
+function hoyMas(dias) { var d = new Date(); d.setDate(d.getDate() + dias); return d.toISOString().slice(0, 10); }
+function fechaAR(iso) { if (!iso) return ''; var p = iso.split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso; }
+function hoyISO() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function auth(h) { h = h || {}; if (ses && ses.token) h['Authorization'] = 'Bearer ' + ses.token; return h; }
+function estado(tipo, txt) { var e = $('estado'); if (!txt) { e.style.display = 'none'; return; } e.className = 'estado e-' + tipo; e.textContent = txt; e.style.display = 'block'; }
+function msg(tipo, txt) { var m = $('msg'); if (!txt) { m.style.display = 'none'; return; } m.className = 'estado e-' + tipo; m.textContent = txt; m.style.display = 'block'; }
+
+// ── Sesion ───────────────────────────────────────────────────────────────────
+function leerSesion() { try { var s = JSON.parse(sessionStorage.getItem(CLAVE) || 'null'); return s && s.clientId === CLIENT_ID ? s : null; } catch (e) { return null; } }
+function abrir() {
+  $('login').classList.remove('on'); $('app').classList.add('on');
+  $('cliente').textContent = ses.nombreCliente || '';
+  document.title = (ses.nombreCliente ? ses.nombreCliente + ' · ' : '') + 'Registro de socios';
+  $('lnkPanel').href = 'panel.html?c=' + encodeURIComponent(CLIENT_ID);
+  limpiar();
+}
+function vencida(texto) {
+  try { sessionStorage.removeItem(CLAVE); } catch (e) {}
+  ses = null; apagarCam();
+  $('app').classList.remove('on'); $('login').classList.add('on');
+  if (texto) { $('loginErr').textContent = texto; $('loginErr').style.display = 'block'; }
+}
+async function login() {
+  var c = $('codigo').value.trim();
+  if (!c) return;
+  $('btnLogin').disabled = true; $('loginErr').style.display = 'none';
+  try {
+    var r = await fetch(API_URL + '/login', { method: 'POST', credentials: 'omit', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: CLIENT_ID, codigo: c }) });
+    var d = await r.json();
+    if (!r.ok || !d.ok) { $('loginErr').textContent = d.error || 'Código inválido'; $('loginErr').style.display = 'block'; return; }
+    ses = { token: d.token, rol: d.rol, etiqueta: d.etiqueta, nombreCliente: d.nombreCliente, clientId: CLIENT_ID };
+    sessionStorage.setItem(CLAVE, JSON.stringify(ses));
+    $('codigo').value = '';
+    abrir();
+  } catch (e) { $('loginErr').textContent = 'No se pudo conectar. Revisá internet.'; $('loginErr').style.display = 'block'; }
+  finally { $('btnLogin').disabled = false; }
+}
+
+// ── DNI ──────────────────────────────────────────────────────────────────────
+function limpiar() {
+  ficha = null; fotoB64 = null;
+  $('fichaNom').textContent = ''; $('fichaDat').textContent = '';
+  $('nuevo').classList.remove('on'); $('venceBox').classList.remove('on');
+  $('nombre').value = ''; estado(); apagarCam('Verificá el DNI primero'); actualizar();
+}
+async function verificar() {
+  var dni = $('dni').value.trim();
+  if (ocupado) return;
+  limpiar(); msg();
+  if (!/^[0-9A-Za-z]{5,15}$/.test(dni)) { estado('err', 'Ingresá un DNI válido.'); return; }
+  ocupado = true; $('btnVerificar').disabled = true; estado('info', 'Buscando…');
+  try {
+    var r = await fetch(API_URL + '/socios/ficha?clientId=' + encodeURIComponent(CLIENT_ID) + '&dni=' + encodeURIComponent(dni), { headers: auth(), credentials: 'omit' });
+    if (r.status === 401) { vencida('Tu sesión venció. Ingresá tu código de nuevo.'); return; }
+    var d = await r.json();
+    if (!r.ok || !d.ok) { estado('err', d.error || 'No se pudo verificar.'); return; }
+    ficha = d;
+    if (!d.existe) {
+      $('fichaNom').textContent = 'Socio nuevo';
+      $('fichaDat').textContent = 'DNI ' + dni + ' · completá los datos';
+      $('nuevo').classList.add('on'); $('venceNuevo').value = hoyMas(30);
+      estado('ok', 'No está cargado: se da de alta al registrar la foto.');
+      setTimeout(function () { $('nombre').focus(); }, 50);
+    } else {
+      $('fichaNom').textContent = d.nombre;
+      var vence = d.venceMembresia ? 'vence ' + fechaAR(d.venceMembresia) : 'sin vencimiento';
+      $('fichaDat').textContent = 'DNI ' + dni + ' · ' + vence + ' · ' + d.rostros + ' foto' + (d.rostros === 1 ? '' : 's');
+      $('venceBox').classList.add('on'); $('venceEdit').value = d.venceMembresia || '';
+      if (!d.activo) estado('warn', 'Este socio está dado de baja. Reactivalo desde el panel antes de registrarle la foto.');
+      else if (!d.venceMembresia) estado('warn', 'No tiene vencimiento cargado: no va a poder entrar hasta que lo cargues.');
+      else if (d.venceMembresia < hoyISO()) estado('warn', 'Membresía vencida. Si renovó, cambiá la fecha antes de registrar.');
+      else estado('info', d.rostros ? 'Ya tiene foto. Agregar otra mejora el reconocimiento.' : 'Sin foto registrada. Podés continuar.');
+    }
+    if (!ficha.existe || ficha.activo) iniciarCam(facing);
+  } catch (e) { estado('err', 'No se pudo conectar. Revisá internet.'); }
+  finally { ocupado = false; $('btnVerificar').disabled = false; actualizar(); }
+}
+
+// ── Camara (en recepcion la trasera es valida: es otra persona sacando la foto) ──
+function apagarCam(txt) {
+  if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
+  stream = null; camLista = false; fotoB64 = null;
+  $('video').style.display = 'none'; $('preview').style.display = 'none';
+  $('camMsg').classList.remove('oculto'); if (txt) $('camTxt').textContent = txt;
+  $('btnFoto').disabled = true; $('btnFlip').disabled = true;
+}
+async function iniciarCam(f) {
+  if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: f }, width: { ideal: 640 }, height: { ideal: 800 } }, audio: false });
+    var v = $('video'); v.srcObject = stream; v.style.display = 'block'; $('preview').style.display = 'none';
+    $('camMsg').classList.add('oculto'); camLista = true; fotoB64 = null;
+    $('btnFoto').disabled = false; $('btnFlip').disabled = false;
+  } catch (e) { apagarCam('No se pudo usar la cámara'); }
+  actualizar();
+}
+function tomarFoto() {
+  if (!camLista) return;
+  var v = $('video'), c = $('canvas');
+  var w = v.videoWidth || 640, h = v.videoHeight || 800, k = Math.min(1, 800 / Math.max(w, h));
+  c.width = Math.round(w * k); c.height = Math.round(h * k);
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  var url = c.toDataURL('image/jpeg', 0.85); fotoB64 = url.split(',')[1];
+  $('preview').src = url; $('preview').style.display = 'block';
+  if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
+  stream = null; camLista = false; $('video').style.display = 'none';
+  $('btnFoto').textContent = 'Otra foto'; $('btnFoto').disabled = false;
+  actualizar();
+}
+function botonFoto() { if (fotoB64 && !camLista) { $('btnFoto').textContent = 'Tomar foto'; iniciarCam(facing); } else tomarFoto(); }
+
+function actualizar() {
+  var ok = !!ficha && !!fotoB64 && (ficha.existe ? ficha.activo : $('nombre').value.trim().length >= 3);
+  $('btnReg').disabled = !ok || ocupado;
+}
+
+// ── Registrar: alta/renovacion si hace falta, despues el rostro ──────────────
+async function registrar() {
+  if (!ficha || !fotoB64 || ocupado) return;
+  var dni = $('dni').value.trim();
+  ocupado = true; actualizar(); msg();
+  var btn = $('btnReg'); btn.innerHTML = '<span class="spinner"></span>Registrando…';
+  try {
+    var datos = null;
+    if (!ficha.existe) datos = { dni: dni, nombre: $('nombre').value.trim(), venceMembresia: $('venceNuevo').value || '' };
+    else if (($('venceEdit').value || '') !== (ficha.venceMembresia || '')) datos = { dni: dni, venceMembresia: $('venceEdit').value || '' };
+    if (datos) {
+      var r1 = await fetch(API_URL + '/socios/guardar', { method: 'POST', credentials: 'omit', headers: auth({ 'Content-Type': 'application/json' }), body: JSON.stringify(datos) });
+      if (r1.status === 401) { vencida('Tu sesión venció. Ingresá tu código de nuevo.'); return; }
+      var d1 = await r1.json();
+      if (!r1.ok || !d1.ok) { msg('err', '❌ ' + (d1.error || 'No se pudo guardar el socio.')); return; }
+    }
+    var r2 = await fetch(API_URL + '/socios/rostro', { method: 'POST', credentials: 'omit', headers: auth({ 'Content-Type': 'application/json' }), body: JSON.stringify({ dni: dni, imageBase64: fotoB64 }) });
+    if (r2.status === 401) { vencida('Tu sesión venció. Ingresá tu código de nuevo.'); return; }
+    var d2 = await r2.json();
+    if (r2.status === 409 && d2.caraDeOtro) { msg('err', '❌ ' + d2.error + '\nNo se registró la foto.'); return; }
+    if (!r2.ok || !d2.ok) { msg('err', '❌ ' + (d2.error || 'No se pudo registrar la foto.') + (datos ? '\nLos datos del socio sí se guardaron.' : '')); return; }
+    msg('ok', '✅ Listo: ' + (d2.nombre || '') + ' (DNI ' + dni + ') ya puede ingresar.');
+    $('dni').value = ''; limpiar(); $('btnFoto').textContent = 'Tomar foto';
+  } catch (e) { msg('err', '❌ Sin conexión. Revisá internet y volvé a probar.'); }
+  finally { ocupado = false; btn.textContent = 'Registrar socio'; actualizar(); }
+}
+
+$('btnLogin').addEventListener('click', login);
+$('codigo').addEventListener('keydown', function (e) { if (e.key === 'Enter') login(); });
+$('btnVerificar').addEventListener('click', verificar);
+$('dni').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); verificar(); } });
+$('dni').addEventListener('input', function () { if (ficha) limpiar(); });
+$('nombre').addEventListener('input', actualizar);
+$('btnFoto').addEventListener('click', botonFoto);
+$('btnFlip').addEventListener('click', function () { facing = facing === 'user' ? 'environment' : 'user'; iniciarCam(facing); });
+$('btnReg').addEventListener('click', registrar);
+$('btnSalir').addEventListener('click', function () { vencida(''); });
+
+if (!CLIENT_ID) { document.body.innerHTML = '<p style="padding:30px;text-align:center">Falta el cliente en el link (?c=…).</p>'; }
+else { ses = leerSesion(); if (ses) abrir(); else $('login').classList.add('on'); }
+</script>
+</body>
+</html>
